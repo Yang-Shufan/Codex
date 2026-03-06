@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>第1关</title><link rel="stylesheet" href="../styles.css" /></head>
+<body>
+<div class="container">
+  <div class="panel">
+    <h1>第1关 · 均值差侦察队</h1>
+    <p>任务：点击“发起侦察”后，判断药物是否有效（只看两个平均值）。连续成功 2 次通关。</p>
+    <a class="link" href="../index.html">← 返回地图</a>
+  </div>
+  <div class="panel">
+    <button class="primary" id="run">发起侦察</button>
+    <button class="secondary" id="guessYes" disabled>我判断：有效</button>
+    <button class="secondary" id="guessNo" disabled>我判断：无效/负效</button>
+    <div id="out" class="log"></div>
+  </div>
+</div>
+<script src="../app.js"></script>
+<script>
+let last = null, streak = 0;
+const out = document.getElementById('out');
+function append(t){ out.innerHTML = `<div>${t}</div>` + out.innerHTML; }
+
+document.getElementById('run').onclick = () => {
+  const tau = Math.random() < 0.8 ? 2 : -0.5;
+  const {y,d} = GameCore.generateSample({n:60,tau,sigma:7,confounded:false});
+  const r = GameCore.diffInMeans(y,d);
+  last = {tau, ate:r.ate};
+  append(`数据回传：处理组均值=${r.mt.toFixed(2)}，对照组均值=${r.mc.toFixed(2)}，ATÊ=${r.ate.toFixed(2)}`);
+  document.getElementById('guessYes').disabled = false;
+  document.getElementById('guessNo').disabled = false;
+};
+
+function judge(guessEffective){
+  if(!last) return;
+  const truth = last.tau > 0;
+  const ok = guessEffective === truth;
+  if(ok){
+    streak += 1;
+    GameCore.updateProgress(10,false,null);
+    append(`<span class='ok'>判断正确！当前连胜 ${streak}/2</span>`);
+  } else {
+    streak = 0;
+    append(`<span class='warnText'>判断错误，连胜清零。提示：先看 ATÊ 正负，再看量级。</span>`);
+  }
+  if(streak >= 2){
+    GameCore.updateProgress(30,true,2);
+    append(`<span class='ok'>🎉 第1关通关，已解锁第2关！返回地图继续。</span>`);
+    document.getElementById('guessYes').disabled = true;
+    document.getElementById('guessNo').disabled = true;
+  }
+}
+document.getElementById('guessYes').onclick = ()=>judge(true);
+document.getElementById('guessNo').onclick = ()=>judge(false);
+</script>
+</body></html>

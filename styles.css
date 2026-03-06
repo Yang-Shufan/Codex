@@ -1,0 +1,81 @@
+:root {
+  --bg: #0b1220;
+  --panel: #121a2c;
+  --card: #1b2742;
+  --text: #eaf0ff;
+  --muted: #9eb0d6;
+  --accent: #66d9ff;
+  --good: #34d399;
+  --warn: #fbbf24;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at top, #17264f 0%, var(--bg) 70%);
+}
+.container { max-width: 980px; margin: 0 auto; padding: 18px; }
+.panel {
+  background: rgba(18, 26, 44, 0.96);
+  border: 1px solid #30416f;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+h1, h2, h3 { margin: 0 0 8px; }
+p { margin: 7px 0; color: var(--muted); }
+.topbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.badge {
+  border: 1px solid #355088;
+  border-radius: 999px;
+  background: #0e1730;
+  color: var(--muted);
+  padding: 6px 10px;
+  font-size: .9rem;
+}
+.grid { display: grid; gap: 10px; }
+.grid.two { grid-template-columns: 1fr 1fr; }
+@media (max-width: 800px) { .grid.two { grid-template-columns: 1fr; } }
+.card {
+  background: var(--card);
+  border: 1px solid #37528d;
+  border-radius: 12px;
+  padding: 12px;
+}
+button {
+  border: none;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-right: 6px;
+  margin-top: 6px;
+}
+button.primary { background: #38bdf8; color: #052033; }
+button.secondary { background: #334155; color: #ecfeff; }
+button.success { background: #10b981; color: #03271d; }
+button.warn { background: #f59e0b; color: #2a1800; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.kpi { font-weight: 700; color: var(--accent); }
+.ok { color: var(--good); font-weight: 700; }
+.warnText { color: var(--warn); font-weight: 700; }
+.log {
+  max-height: 210px;
+  overflow: auto;
+  font-size: .9rem;
+  border-top: 1px dashed #355088;
+  margin-top: 10px;
+  padding-top: 8px;
+}
+.choice { display: block; width: 100%; text-align: left; background: #23345a; color: #e2ecff; }
+a.link { color: #7dd3fc; text-decoration: none; }
+a.link:hover { text-decoration: underline; }
+.progress {
+  height: 12px;
+  background: #0d142a;
+  border: 1px solid #334b84;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress > div { height: 100%; background: linear-gradient(to right, #38bdf8, #10b981); width: 0%; }

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>第2关</title><link rel="stylesheet" href="../styles.css" /></head>
+<body><div class="container">
+<div class="panel"><h1>第2关 · 样本量工坊</h1><p>任务：用最少实验轮次把置信区间宽度降到 3.6 以下。你只能选：小样本(40) / 大样本(180)。</p><a class="link" href="../index.html">← 返回地图</a></div>
+<div class="panel">
+  <button class="primary" id="small">用小样本做实验</button>
+  <button class="primary" id="big">用大样本做实验</button>
+  <div id="out" class="log"></div>
+</div></div>
+<script src="../app.js"></script>
+<script>
+const s = GameCore.getState();
+if (s.unlocked < 2) location.href = '../index.html';
+const out = document.getElementById('out');
+let turns = 0;
+function log(t){ out.innerHTML = `<div>${t}</div>` + out.innerHTML; }
+function run(n){
+  turns += 1;
+  const {y,d} = GameCore.generateSample({n,tau:2,sigma:8,confounded:false});
+  const r = GameCore.diffInMeans(y,d);
+  const w = r.ciU - r.ciL;
+  log(`第${turns}轮 | N=${n} | ATÊ=${r.ate.toFixed(2)} | CI宽度=${w.toFixed(2)}`);
+  GameCore.updateProgress(8,false,null);
+  if (w < 3.6) {
+    const bonus = turns <= 2 ? 35 : 20;
+    GameCore.updateProgress(bonus,true,3);
+    log(`<span class='ok'>✅ 达标！你已掌握“样本量→稳定性”。解锁第3关。</span>`);
+    document.getElementById('small').disabled = true;
+    document.getElementById('big').disabled = true;
+  }
+}
+document.getElementById('small').onclick = ()=>run(40);
+document.getElementById('big').onclick = ()=>run(180);
+</script>
+</body></html>

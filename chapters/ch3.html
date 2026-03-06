@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>第3关</title><link rel="stylesheet" href="../styles.css" /></head>
+<body><div class="container">
+<div class="panel"><h1>第3关 · 混杂偏误法庭</h1><p>任务：看完证据后，选出“偏误来源”。连对 2 题通关。</p><a class="link" href="../index.html">← 返回地图</a></div>
+<div class="panel">
+  <button class="primary" id="newCase">生成案件证据</button>
+  <div id="evidence" class="card" style="margin-top:8px;">点击上方按钮开始。</div>
+  <button class="choice" data-a="1">A. 药物真的有超强效果，所以估计偏高</button>
+  <button class="choice" data-a="2">B. 能力高的人更容易进治疗组，产生混杂偏误</button>
+  <button class="choice" data-a="3">C. 只是随机误差，不存在系统问题</button>
+  <div id="out" class="log"></div>
+</div></div>
+<script src="../app.js"></script>
+<script>
+const s = GameCore.getState();
+if (s.unlocked < 3) location.href = '../index.html';
+let answer = null, streak = 0;
+const evidence = document.getElementById('evidence');
+const out = document.getElementById('out');
+function log(t){ out.innerHTML = `<div>${t}</div>` + out.innerHTML; }
+
+document.getElementById('newCase').onclick = ()=>{
+  const conf = 3 + Math.random()*1.5;
+  const tau = 2;
+  const {y,d} = GameCore.generateSample({n:120,tau,sigma:6,conf,confounded:true});
+  const r = GameCore.diffInMeans(y,d);
+  answer = 2;
+  evidence.innerHTML = `证据：真实 τ=2.00，但你观测到 ATÊ=${r.ate.toFixed(2)}。\n处理组显著更“高能力”时，估计偏离更大。`;
+};
+
+document.querySelectorAll('.choice').forEach(btn=>btn.onclick=()=>{
+  if(answer===null){ log('请先生成案件证据。'); return; }
+  const pick = Number(btn.dataset.a);
+  if (pick === answer) {
+    streak += 1;
+    GameCore.updateProgress(12,false,null);
+    log(`<span class='ok'>判断正确！连对 ${streak}/2</span>`);
+  } else {
+    streak = 0;
+    log(`<span class='warnText'>不对。关键在“分组不随机 + 能力影响结果”。</span>`);
+  }
+  if (streak >= 2) {
+    GameCore.updateProgress(35,true,4);
+    log(`<span class='ok'>🎉 第3关通关，已解锁第4关。</span>`);
+  }
+});
+</script>
+</body></html>
