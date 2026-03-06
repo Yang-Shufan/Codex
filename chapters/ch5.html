@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>第5关</title><link rel="stylesheet" href="../styles.css"/></head>
+<body><div class="container"><div class="panel"><h1>第5关：实验设计挑战赛（毕业关）</h1><p>规则：你有预算100点，目标是在预算内把估计误差控制到0.04以内。每轮成本= N/20 + 设计复杂度罚分。</p><a class="link" href="../index.html">← 返回地图</a></div>
+<div class="panel">
+<div class="grid two">
+  <div class="control"><label>N：<span id="nV">300</span></label><input id="n" type="range" min="120" max="1000" step="20" value="300"></div>
+  <div class="control"><label>控制题数量J：<span id="jV">4</span></label><input id="j" type="range" min="3" max="6" step="1" value="4"></div>
+  <div class="control"><label>直接提问谎报率：<span id="liV">0.35</span></label><input id="li" type="range" min="0.1" max="0.7" step="0.05" value="0.35"></div>
+  <div class="control"><label>分组偏置强度：<span id="tbV">0.60</span></label><input id="tb" type="range" min="0" max="1.5" step="0.1" value="0.6"></div>
+</div>
+<div class="topbar"><span class="badge">预算：<span id="budget">100</span></span><span class="badge">最佳误差：<span id="best">--</span></span></div>
+<button class="primary" id="run">提交方案并仿真</button><button class="success" id="graduate" disabled>毕业判定</button>
+<div id="bars" class="bar-wrap"></div><div id="out" class="log"></div>
+</div></div>
+<script src="../app.js"></script><script>
+if(ListCore.getState().unlocked<5) location.href='../index.html';
+let budget=100,best=999,passed=false;
+const ids=['n','j','li','tb']; ids.forEach(id=>{document.getElementById(id).oninput=()=>document.getElementById(id+'V').textContent=(id==='li'||id==='tb')?Number(document.getElementById(id).value).toFixed(2):document.getElementById(id).value;});
+const bars=document.getElementById('bars'), out=document.getElementById('out');
+const row=(name,val)=>`<div class='row'><div>${name}</div><div class='track'><div class='fill' style='width:${Math.max(0,Math.min(1,val))*100}%'></div></div><div class='mono'>${val.toFixed(3)}</div></div>`;
+function refresh(){document.getElementById('budget').textContent=budget;document.getElementById('best').textContent=best===999?'--':best.toFixed(3);}refresh();
+
+document.getElementById('run').onclick=()=>{
+  if(budget<=0){out.innerHTML=`<div class='warnText'>预算耗尽，请返回地图重置进度后再挑战。</div>`+out.innerHTML;return;}
+  const N=+n.value,J=+j.value,li=+li.value,tb=+tb.value;
+  const cost=Math.ceil(N/20 + Math.abs(tb)*8 + (J-3)*3); budget-=cost;
+  const base=[0.2,0.32,0.45,0.55,0.38,0.5].slice(0,J);
+  const rows=ListCore.simulateListExperiment({n:N,J,controlProb:base,directLieProb:li,treatmentBias:tb});
+  const truth=ListCore.truthMean(rows), dim=ListCore.diffInMeans(rows).est, err=Math.abs(dim-truth);
+  best=Math.min(best,err); passed = best<=0.04 && budget>=0;
+  bars.innerHTML=row('真实比例',truth)+row('你的DIM估计',dim)+row('本轮误差',err);
+  out.innerHTML=`<div>本轮成本=${cost}；剩余预算=${budget}</div><div class='note'>设计经验：N提高可降方差；过强分组偏置会放大模型依赖。</div><div class='${passed?'ok':'warnText'}'>${passed?'已达到毕业阈值！点击“毕业判定”':'继续优化参数组合，目标最佳误差≤0.04'}</div>`+out.innerHTML;
+  refresh(); ListCore.updateProgress({xp:15,stars:2});
+  document.getElementById('graduate').disabled=!passed;
+};
+
+document.getElementById('graduate').onclick=()=>{
+  if(!passed)return;
+  ListCore.updateProgress({xp:60,stars:6,badge:true,unlock:5});
+  out.innerHTML=`<div class='ok'>🏆 毕业成功！你已完成从基础概念到设计诊断的完整学习闭环。</div>`+out.innerHTML;
+};
+</script></body></html>
