@@ -1,47 +1,30 @@
-<!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>第4关</title><link rel="stylesheet" href="../styles.css" /></head>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>第4关</title><link rel="stylesheet" href="../styles.css"/></head>
 <body><div class="container">
-<div class="panel"><h1>第4关 · 回归救援战（终章）</h1><p>任务：在同一批数据上，让“回归 β₁ 比 ATÊ 更接近真实 τ”成功 2 次，完成毕业。</p><a class="link" href="../index.html">← 返回地图</a></div>
+<div class="panel"><h1>第4关：为什么要多元分析？</h1><p>任务：比较“总均值差(DIM)”与“控制X后的回归系数”。这对应论文强调的从单一均值差走向多元模型。</p><a class="link" href="../index.html">← 返回地图</a></div>
 <div class="panel">
-  <button class="primary" id="run">生成高混杂数据</button>
-  <button class="success" id="useReg" disabled>使用回归控制能力变量</button>
+  <button class="primary" id="run">运行一次对比实验（小样本更容易不平衡）</button>
+  <div class="bar-wrap" id="bars"></div>
   <div id="out" class="log"></div>
-</div></div>
+</div>
+</div>
 <script src="../app.js"></script>
 <script>
-const s = GameCore.getState();
-if (s.unlocked < 4) location.href = '../index.html';
-let latest = null, success = 0;
-const out = document.getElementById('out');
-function log(t){ out.innerHTML = `<div>${t}</div>` + out.innerHTML; }
+if(ListCore.getState().unlocked<4) location.href='../index.html';
+const bars=document.getElementById('bars');const out=document.getElementById('out');
+function row(name,val){return `<div class='row'><div>${name}</div><div class='track'><div class='fill' style='width:${Math.max(0,Math.min(1,val))*100}%'></div></div><div class='mono'>${val.toFixed(3)}</div></div>`;}
 
-document.getElementById('run').onclick = ()=>{
-  const tau = 2;
-  const sample = GameCore.generateSample({n:140,tau,sigma:7,conf:4.2,confounded:true});
-  const dim = GameCore.diffInMeans(sample.y, sample.d);
-  latest = { tau, sample, dim };
-  log(`裸估计：ATÊ=${dim.ate.toFixed(2)}，真实 τ=2.00，误差=${Math.abs(dim.ate-tau).toFixed(2)}`);
-  document.getElementById('useReg').disabled = false;
-};
-
-document.getElementById('useReg').onclick = ()=>{
-  if(!latest) return;
-  const reg = GameCore.regressYOnDX(latest.sample.y, latest.sample.d, latest.sample.x);
-  const errAte = Math.abs(latest.dim.ate - latest.tau);
-  const errReg = Math.abs(reg.b1 - latest.tau);
-  const better = errReg < errAte;
-  log(`回归后：β₁=${reg.b1.toFixed(2)}，误差=${errReg.toFixed(2)}（ATÊ误差=${errAte.toFixed(2)}）`);
-  if (better) {
-    success += 1;
-    GameCore.updateProgress(15,false,null);
-    log(`<span class='ok'>✅ 回归修正成功 ${success}/2</span>`);
-  } else {
-    log(`<span class='warnText'>这次改进不明显，再试一批数据。</span>`);
-  }
-  if (success >= 2) {
-    GameCore.updateProgress(50,true,4);
-    log(`<span class='ok'>🏆 毕业成功！你已经完成“均值差→混杂偏误→回归修正”的全路径。</span>`);
-  }
-};
+document.getElementById('run').onclick=()=>{
+  const rows=ListCore.simulateListExperiment({n:180,directLieProb:0.35,treatmentBias:0.8});
+  const truth=ListCore.truthMean(rows);
+  const dim=ListCore.listDiffInMeans(rows);
+  const b1=ListCore.olsTreatmentCoeff(rows);
+  bars.innerHTML = row('真实敏感比例',truth)+row('DIM估计',dim)+row('控制X后的β1',b1);
+  const errDim=Math.abs(dim-truth), errReg=Math.abs(b1-truth);
+  const better=errReg<errDim;
+  out.innerHTML = `<div>误差比较：|DIM-Truth|=${errDim.toFixed(3)}；|β1-Truth|=${errReg.toFixed(3)}</div>
+  <div class='note'>教学提示：这里用线性回归系数做“多元思路演示”。在正式研究中可进一步使用 NLS/ML/EM 等更完整方法。</div>
+  <div class='${better?'ok':'warnText'}'>${better?'✅ 本轮多元控制更接近真实值。':'⚠️ 本轮差异不明显，再跑几次看总体趋势。'}</div>`;
+  if(better){ListCore.updateProgress(40,true,4);} else {ListCore.updateProgress(15,false,null);}  
+}
 </script>
 </body></html>

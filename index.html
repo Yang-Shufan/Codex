@@ -1,69 +1,23 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>统计冒险学院 · 章节地图</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <div class="container">
-    <div class="panel">
-      <h1>🗺️ 统计冒险学院：章节地图</h1>
-      <p>你提到“单页堆参数太难”，所以我把它完全重构成 <strong>独立关卡页面</strong>。你现在只需要按顺序闯关。</p>
-      <div class="topbar">
-        <span class="badge">已解锁章节：<span id="unlocked">1</span>/4</span>
-        <span class="badge">徽章：<span id="badges">0</span></span>
-        <span class="badge">经验：<span id="xp">0</span></span>
-      </div>
-      <div class="progress"><div id="bar"></div></div>
-      <button class="warn" id="reset">清空进度重来</button>
-    </div>
-
-    <div class="grid two">
-      <div class="card">
-        <h3>第1关：均值差侦察队</h3>
-        <p>无参数，先理解“处理组均值 - 对照组均值”的直觉。</p>
-        <a class="link" href="chapters/ch1.html">进入第1关 →</a>
-      </div>
-      <div class="card">
-        <h3>第2关：样本量工坊</h3>
-        <p>你只做一个决策：选小样本 / 大样本，观察稳定性差异。</p>
-        <a class="link" id="go2" href="#">未解锁</a>
-      </div>
-      <div class="card">
-        <h3>第3关：混杂偏误法庭</h3>
-        <p>看起来有效，真的有效吗？在法庭上找出偏误来源。</p>
-        <a class="link" id="go3" href="#">未解锁</a>
-      </div>
-      <div class="card">
-        <h3>第4关：回归救援战</h3>
-        <p>同一数据下比较 ATÊ 与 β₁，完成最终校正任务。</p>
-        <a class="link" id="go4" href="#">未解锁</a>
-      </div>
-    </div>
-  </div>
-  <script src="app.js"></script>
-  <script>
-    const s = GameCore.getState();
-    document.getElementById('unlocked').textContent = s.unlocked;
-    document.getElementById('badges').textContent = s.badges;
-    document.getElementById('xp').textContent = s.xp;
-    document.getElementById('bar').style.width = `${Math.min(100, s.unlocked / 4 * 100)}%`;
-
-    function unlockLink(id, chapter) {
-      const el = document.getElementById(id);
-      if (s.unlocked >= chapter) {
-        el.textContent = `进入第${chapter}关 →`;
-        el.href = `chapters/ch${chapter}.html`;
-      }
-    }
-    unlockLink('go2', 2); unlockLink('go3', 3); unlockLink('go4', 4);
-
-    document.getElementById('reset').addEventListener('click', () => {
-      GameCore.resetState();
-      location.reload();
-    });
-  </script>
-</body>
-</html>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>列表实验学院</title><link rel="stylesheet" href="styles.css"/></head>
+<body><div class="container">
+<div class="panel">
+  <h1>🧪 列表实验学院（重构版）</h1>
+  <p>这次从<strong>什么是列表实验</strong>开始，按“概念 → 估计 → 假设 → 多元分析”四关推进。每关都有可视化反馈，不再靠纯猜测。</p>
+  <div class="topbar"><span class="badge">已解锁：<span id="u">1</span>/4</span><span class="badge">徽章：<span id="b">0</span></span><span class="badge">经验：<span id="x">0</span></span></div>
+  <button class="warn" id="reset">清空学习进度</button>
+</div>
+<div class="grid two">
+  <div class="card"><h3>第1关：什么是列表实验？</h3><p>看同一人群在“直接提问 vs 列表实验”下的估计差异。</p><a class="link" href="chapters/ch1.html">进入第1关 →</a></div>
+  <div class="card"><h3>第2关：均值差估计量与重复抽样</h3><p>观察 difference-in-means 的抽样波动分布。</p><a class="link" id="l2" href="#">未解锁</a></div>
+  <div class="card"><h3>第3关：关键假设与违背检测</h3><p>无设计效应、无谎言、天花板/地板风险的可视化检查。</p><a class="link" id="l3" href="#">未解锁</a></div>
+  <div class="card"><h3>第4关：多元分析为什么需要？</h3><p>比较总均值差与“控制协变量后的估计”。</p><a class="link" id="l4" href="#">未解锁</a></div>
+</div>
+</div>
+<script src="app.js"></script>
+<script>
+const s=ListCore.getState();
+document.getElementById('u').textContent=s.unlocked;document.getElementById('b').textContent=s.badges;document.getElementById('x').textContent=s.xp;
+[['l2',2],['l3',3],['l4',4]].forEach(([id,c])=>{if(s.unlocked>=c){const el=document.getElementById(id);el.textContent=`进入第${c}关 →`;el.href=`chapters/ch${c}.html`;}});
+document.getElementById('reset').onclick=()=>{ListCore.resetState();location.reload();};
+</script>
+</body></html>

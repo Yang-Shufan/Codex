@@ -1,56 +1,37 @@
-<!doctype html>
-<html lang="zh-CN">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>第1关</title><link rel="stylesheet" href="../styles.css" /></head>
-<body>
-<div class="container">
-  <div class="panel">
-    <h1>第1关 · 均值差侦察队</h1>
-    <p>任务：点击“发起侦察”后，判断药物是否有效（只看两个平均值）。连续成功 2 次通关。</p>
-    <a class="link" href="../index.html">← 返回地图</a>
-  </div>
-  <div class="panel">
-    <button class="primary" id="run">发起侦察</button>
-    <button class="secondary" id="guessYes" disabled>我判断：有效</button>
-    <button class="secondary" id="guessNo" disabled>我判断：无效/负效</button>
-    <div id="out" class="log"></div>
-  </div>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>第1关</title><link rel="stylesheet" href="../styles.css"/></head>
+<body><div class="container">
+<div class="panel"><h1>第1关：什么是列表实验？</h1><p>你将看到：直接提问会因社会期望偏误低估敏感态度；列表实验通过“只报数量”缓解这个问题。</p><a class="link" href="../index.html">← 返回地图</a></div>
+<div class="panel">
+  <button class="primary" id="run">生成一组样本（N=500）</button>
+  <button class="success" id="pass" disabled>我理解了：列表实验估计更接近真实值</button>
+  <div class="bar-wrap" id="bars"></div>
+  <div id="txt" class="log"></div>
+</div>
 </div>
 <script src="../app.js"></script>
 <script>
-let last = null, streak = 0;
-const out = document.getElementById('out');
-function append(t){ out.innerHTML = `<div>${t}</div>` + out.innerHTML; }
+const bars=document.getElementById('bars');const txt=document.getElementById('txt');
+let good=false;
+function barRow(name,val){
+  return `<div class='row'><div>${name}</div><div class='track'><div class='fill' style='width:${(val*100).toFixed(1)}%'></div></div><div class='mono'>${(val*100).toFixed(1)}%</div></div>`;
+}
 
-document.getElementById('run').onclick = () => {
-  const tau = Math.random() < 0.8 ? 2 : -0.5;
-  const {y,d} = GameCore.generateSample({n:60,tau,sigma:7,confounded:false});
-  const r = GameCore.diffInMeans(y,d);
-  last = {tau, ate:r.ate};
-  append(`数据回传：处理组均值=${r.mt.toFixed(2)}，对照组均值=${r.mc.toFixed(2)}，ATÊ=${r.ate.toFixed(2)}`);
-  document.getElementById('guessYes').disabled = false;
-  document.getElementById('guessNo').disabled = false;
+document.getElementById('run').onclick=()=>{
+  const rows=ListCore.simulateListExperiment({n:500,directLieProb:0.45,treatmentBias:0});
+  const truth=ListCore.truthMean(rows); const direct=ListCore.directMean(rows); const dim=ListCore.listDiffInMeans(rows);
+  bars.innerHTML = barRow('真实敏感比例',truth)+barRow('直接提问均值',direct)+barRow('列表实验均值差',dim);
+  const errD=Math.abs(direct-truth), errL=Math.abs(dim-truth);
+  good = errL < errD;
+  txt.innerHTML = `<div>真实值=${truth.toFixed(3)}；直接提问=${direct.toFixed(3)}；列表实验(DIM)=${dim.toFixed(3)}</div>
+  <div class='note'>解释：直接提问里一部分“真实为1”的人会因顾虑而报0；列表实验只报数量，隐私更强。</div>
+  <div class='${good?'ok':'warnText'}'>本轮判断：${good?'列表实验更接近真实值':'这轮噪声较大，重跑再看整体趋势'}。</div>`;
+  document.getElementById('pass').disabled=false;
 };
 
-function judge(guessEffective){
-  if(!last) return;
-  const truth = last.tau > 0;
-  const ok = guessEffective === truth;
-  if(ok){
-    streak += 1;
-    GameCore.updateProgress(10,false,null);
-    append(`<span class='ok'>判断正确！当前连胜 ${streak}/2</span>`);
-  } else {
-    streak = 0;
-    append(`<span class='warnText'>判断错误，连胜清零。提示：先看 ATÊ 正负，再看量级。</span>`);
-  }
-  if(streak >= 2){
-    GameCore.updateProgress(30,true,2);
-    append(`<span class='ok'>🎉 第1关通关，已解锁第2关！返回地图继续。</span>`);
-    document.getElementById('guessYes').disabled = true;
-    document.getElementById('guessNo').disabled = true;
-  }
-}
-document.getElementById('guessYes').onclick = ()=>judge(true);
-document.getElementById('guessNo').onclick = ()=>judge(false);
+document.getElementById('pass').onclick=()=>{
+  if(!good){txt.innerHTML = `<div class='warnText'>请至少先跑到一次“列表实验更接近真实值”再通关，这样你会更直观。</div>`+txt.innerHTML;return;}
+  ListCore.updateProgress(30,true,2);
+  txt.innerHTML = `<div class='ok'>✅ 通关成功：你已理解列表实验动机，解锁第2关。</div>`+txt.innerHTML;
+};
 </script>
 </body></html>
