@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>实验设计学院：从均值差到回归分析</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --card: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22d3ee;
+      --good: #34d399;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, var(--bg));
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.1fr 1fr;
+    }
+    .panel {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+    h1 { margin: 8px 0 12px; font-size: 1.6rem; }
+    h2 { margin: 0 0 10px; font-size: 1.15rem; color: var(--accent); }
+    .status {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .badge {
+      background: #0b1220;
+      border: 1px solid #475569;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .controls {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+    .control { background: var(--card); border-radius: 10px; padding: 10px; }
+    label { display: block; font-size: 0.9rem; color: var(--muted); }
+    input[type="range"] { width: 100%; }
+    .buttons {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: #334155; }
+    button.warn { background: var(--warn); color: #111827; }
+    button:hover { filter: brightness(1.05); }
+    #resultBox {
+      margin-top: 14px;
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 170px;
+    }
+    .metric { margin: 4px 0; font-size: 0.95rem; }
+    .good { color: var(--good); }
+    .warnText { color: var(--warn); }
+    #history {
+      max-height: 300px;
+      overflow: auto;
+      margin-top: 8px;
+      font-size: 0.88rem;
+      border-top: 1px dashed #334155;
+      padding-top: 8px;
+    }
+    .lesson ol { padding-left: 20px; }
+    .lesson li { margin-bottom: 8px; }
+    code {
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 1px 5px;
+      color: #7dd3fc;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="panel">
+      <h1>🎮 实验设计学院：从均值差到回归分析</h1>
+      <div class="status">
+        <span class="badge">关卡：<span id="stage">1</span>/3</span>
+        <span class="badge">研究资金：<span id="budget">100</span></span>
+        <span class="badge">学术声望：<span id="reputation">0</span></span>
+      </div>
+
+      <div class="controls">
+        <div class="control">
+          <label>样本量 N（每组）: <span id="nVal">50</span></label>
+          <input id="n" type="range" min="20" max="300" step="10" value="50" />
+        </div>
+        <div class="control">
+          <label>真实处理效应 τ: <span id="tauVal">2.0</span></label>
+          <input id="tau" type="range" min="-2" max="6" step="0.5" value="2" />
+        </div>
+        <div class="control">
+          <label>噪声标准差 σ: <span id="sigmaVal">8.0</span></label>
+          <input id="sigma" type="range" min="2" max="20" step="1" value="8" />
+        </div>
+        <div class="control">
+          <label>混杂强度（仅第2-3关）: <span id="confVal">2.5</span></label>
+          <input id="conf" type="range" min="0" max="5" step="0.5" value="2.5" />
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="runBtn">运行一次实验</button>
+        <button class="secondary" id="nextBtn">下一关</button>
+        <button class="warn" id="resetBtn">重置游戏</button>
+      </div>
+
+      <div id="resultBox">
+        <div class="metric">准备开始：目标是逐步掌握 <strong>均值差</strong>、<strong>随机实验</strong>、<strong>回归估计</strong>。</div>
+      </div>
+
+      <div id="history"></div>
+    </section>
+
+    <section class="panel lesson">
+      <h2>📚 教学说明（跟着关卡学习）</h2>
+      <ol>
+        <li><strong>第1关：均值差（Difference in Means）</strong><br/>
+          你会观察到处理组与对照组的平均值差：<code>ATÊ = mean(Y|D=1)-mean(Y|D=0)</code>。<br/>
+          在真正随机分组下，这个估计是无偏的。
+        </li>
+        <li><strong>第2关：非随机分组与混杂偏误</strong><br/>
+          我们让能力高的个体更容易进入处理组。此时均值差会混入“能力差异”导致偏误。<br/>
+          你会看到即使真实效应固定，估计也可能系统偏高或偏低。
+        </li>
+        <li><strong>第3关：回归分析（控制变量）</strong><br/>
+          用线性模型：<code>Y = β₀ + β₁D + β₂X + ε</code>。<br/>
+          其中 <code>X</code> 是可观测混杂变量（如能力）。在模型可用条件下，<code>β₁</code> 比裸均值差更接近真实处理效应。
+        </li>
+      </ol>
+
+      <h2>🧪 你可以做的“列举实验”</h2>
+      <ul>
+        <li>固定 τ=2，把 N 从 20 增大到 300，观察置信区间如何变窄。</li>
+        <li>固定 N=80，把 σ 从 2 提到 20，观察统计显著性如何下降。</li>
+        <li>第2关把混杂强度从 0 拉到 5，比较偏误放大过程。</li>
+        <li>第3关对比“均值差”和“回归 β₁”谁更接近真实 τ。</li>
+      </ul>
+
+      <h2>🏁 胜利条件</h2>
+      <p>每次实验会消耗资金。若估计足够精确且解释合理，你获得声望。完成三关并达到 18 点声望即通关。</p>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      stage: 1,
+      budget: 100,
+      reputation: 0,
+      runCount: 0
+    };
+
+    const refs = {
+      n: document.getElementById('n'),
+      tau: document.getElementById('tau'),
+      sigma: document.getElementById('sigma'),
+      conf: document.getElementById('conf'),
+      nVal: document.getElementById('nVal'),
+      tauVal: document.getElementById('tauVal'),
+      sigmaVal: document.getElementById('sigmaVal'),
+      confVal: document.getElementById('confVal'),
+      stage: document.getElementById('stage'),
+      budget: document.getElementById('budget'),
+      reputation: document.getElementById('reputation'),
+      result: document.getElementById('resultBox'),
+      history: document.getElementById('history'),
+      runBtn: document.getElementById('runBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      resetBtn: document.getElementById('resetBtn')
+    };
+
+    function randn() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function mean(arr) {
+      return arr.reduce((a, b) => a + b, 0) / arr.length;
+    }
+
+    function std(arr) {
+      const m = mean(arr);
+      return Math.sqrt(arr.reduce((s, x) => s + (x - m) ** 2, 0) / (arr.length - 1));
+    }
+
+    function diffInMeans(y, d) {
+      const t = [], c = [];
+      for (let i = 0; i < y.length; i++) {
+        if (d[i] === 1) t.push(y[i]); else c.push(y[i]);
+      }
+      const mt = mean(t), mc = mean(c);
+      const se = Math.sqrt((std(t) ** 2 / t.length) + (std(c) ** 2 / c.length));
+      const est = mt - mc;
+      return { est, se, ciL: est - 1.96 * se, ciU: est + 1.96 * se, mt, mc };
+    }
+
+    function regressYOnDX(y, d, x) {
+      const n = y.length;
+      let s00 = n, s01 = 0, s02 = 0, s11 = 0, s12 = 0, s22 = 0;
+      let t0 = 0, t1 = 0, t2 = 0;
+      for (let i = 0; i < n; i++) {
+        const xi = x[i], di = d[i], yi = y[i];
+        s01 += di; s02 += xi;
+        s11 += di * di; s12 += di * xi; s22 += xi * xi;
+        t0 += yi; t1 += di * yi; t2 += xi * yi;
+      }
+      const A = [[s00, s01, s02], [s01, s11, s12], [s02, s12, s22]];
+      const b = [t0, t1, t2];
+      function det3(m) {
+        return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
+             - m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
+             + m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+      }
+      const detA = det3(A);
+      if (Math.abs(detA) < 1e-8) return { b1: NaN };
+      const A1 = [[b[0], s01, s02], [b[1], s11, s12], [b[2], s12, s22]];
+      const A2 = [[s00, b[0], s02], [s01, b[1], s12], [s02, b[2], s22]];
+      const A3 = [[s00, s01, b[0]], [s01, s11, b[1]], [s02, s12, b[2]]];
+      return { b1: det3(A2) / detA, b0: det3(A1) / detA, b2: det3(A3) / detA };
+    }
+
+    function runExperiment() {
+      const n = Number(refs.n.value);
+      const tau = Number(refs.tau.value);
+      const sigma = Number(refs.sigma.value);
+      const conf = Number(refs.conf.value);
+
+      const x = [], d = [], y = [];
+      for (let i = 0; i < 2 * n; i++) {
+        const ability = randn();
+        x.push(ability);
+        let treat = 0;
+        if (state.stage === 1 || state.stage === 3) {
+          treat = Math.random() < 0.5 ? 1 : 0;
+        } else {
+          const p = 1 / (1 + Math.exp(-(ability * conf)));
+          treat = Math.random() < p ? 1 : 0;
+        }
+        d.push(treat);
+        const yi = 50 + tau * treat + 3 * ability + sigma * randn();
+        y.push(yi);
+      }
+
+      const dim = diffInMeans(y, d);
+      let text = `<div class="metric"><strong>本次实验结果：</strong></div>`;
+      text += `<div class="metric">均值差估计 ATÊ = <strong>${dim.est.toFixed(3)}</strong>，95%CI [${dim.ciL.toFixed(3)}, ${dim.ciU.toFixed(3)}]</div>`;
+      text += `<div class="metric">处理组均值=${dim.mt.toFixed(3)}；对照组均值=${dim.mc.toFixed(3)}；真实 τ=${tau.toFixed(3)}</div>`;
+
+      let reward = 0;
+      if (Math.abs(dim.est - tau) < 1.2) reward += 2;
+      if (Math.abs(dim.est - tau) < 0.6) reward += 2;
+      if (state.stage === 2) {
+        text += `<div class="metric warnText">第2关提示：你看到的偏差往往来自“能力X与D相关”。这就是混杂偏误。</div>`;
+      }
+      if (state.stage === 3) {
+        const reg = regressYOnDX(y, d, x);
+        text += `<div class="metric">回归控制后 β₁(处理效应) = <strong>${reg.b1.toFixed(3)}</strong>；β₂(能力)=${reg.b2.toFixed(3)}</div>`;
+        if (Math.abs(reg.b1 - tau) < Math.abs(dim.est - tau)) {
+          text += `<div class="metric good">回归改进了估计精度：控制变量帮助减少偏误。</div>`;
+          reward += 3;
+        }
+      }
+
+      const cost = Math.ceil(n / 25);
+      state.budget -= cost;
+      state.reputation += reward;
+      state.runCount += 1;
+
+      if (state.budget <= 0) {
+        text += `<div class="metric warnText">资金耗尽！请重置或用更高效的实验设计。</div>`;
+        refs.runBtn.disabled = true;
+      }
+      if (state.stage === 3 && state.reputation >= 18) {
+        text += `<div class="metric good"><strong>恭喜通关！你已经掌握从均值差到回归因果估计的完整路径。</strong></div>`;
+      }
+
+      refs.result.innerHTML = text;
+      refs.history.innerHTML = `<div>第${state.runCount}次 | 关卡${state.stage} | N=${n} | τ=${tau} | σ=${sigma} | 混杂=${conf} | ATÊ=${dim.est.toFixed(3)} | 声望+${reward}</div>` + refs.history.innerHTML;
+      renderStatus();
+    }
+
+    function renderStatus() {
+      refs.stage.textContent = state.stage;
+      refs.budget.textContent = state.budget;
+      refs.reputation.textContent = state.reputation;
+      refs.nVal.textContent = refs.n.value;
+      refs.tauVal.textContent = Number(refs.tau.value).toFixed(1);
+      refs.sigmaVal.textContent = Number(refs.sigma.value).toFixed(1);
+      refs.confVal.textContent = Number(refs.conf.value).toFixed(1);
+    }
+
+    function nextStage() {
+      state.stage = Math.min(3, state.stage + 1);
+      refs.result.innerHTML = `<div class="metric">进入第${state.stage}关。请运行实验并观察估计变化。</div>`;
+      renderStatus();
+    }
+
+    function resetGame() {
+      state.stage = 1;
+      state.budget = 100;
+      state.reputation = 0;
+      state.runCount = 0;
+      refs.runBtn.disabled = false;
+      refs.history.innerHTML = '';
+      refs.result.innerHTML = '<div class="metric">游戏已重置。欢迎重新开始实验之旅！</div>';
+      renderStatus();
+    }
+
+    [refs.n, refs.tau, refs.sigma, refs.conf].forEach(el => {
+      el.addEventListener('input', renderStatus);
+    });
+    refs.runBtn.addEventListener('click', runExperiment);
+    refs.nextBtn.addEventListener('click', nextStage);
+    refs.resetBtn.addEventListener('click', resetGame);
+
+    renderStatus();
+  </script>
+</body>
+</html>
