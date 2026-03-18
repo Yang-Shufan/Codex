@@ -1,0 +1,25 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>第4关</title><link rel="stylesheet" href="../styles.css"/></head>
+<body><div class="container"><div class="panel"><h1>第4关：多元分析入门</h1><p>目标：理解“仅看总均值差”与“控制协变量后的估计”为何会不同。</p><a class="link" href="../index.html">← 返回地图</a></div>
+<div class="panel">
+<div class="grid two">
+  <div class="control"><label>分组偏置强度（X影响进入实验组）：<span id="tbV">0.80</span></label><input id="tb" type="range" min="0" max="2" step="0.1" value="0.8"></div>
+  <div class="control"><label>样本量 N：<span id="nV">220</span></label><input id="n" type="range" min="120" max="800" step="20" value="220"></div>
+</div>
+<button class="primary" id="run">运行一次比较</button><button class="success" id="pass" disabled>提交通关</button>
+<div id="bars" class="bar-wrap"></div><div id="out" class="log"></div>
+</div></div>
+<script src="../app.js"></script><script>
+if(ListCore.getState().unlocked<4) location.href='../index.html';
+const tb=document.getElementById('tb'), n=document.getElementById('n'); tb.oninput=()=>tbV.textContent=Number(tb.value).toFixed(2); n.oninput=()=>nV.textContent=n.value;
+const bars=document.getElementById('bars'), out=document.getElementById('out'); let good=false;
+const row=(name,val)=>`<div class='row'><div>${name}</div><div class='track'><div class='fill' style='width:${Math.max(0,Math.min(1,val))*100}%'></div></div><div class='mono'>${val.toFixed(3)}</div></div>`;
+document.getElementById('run').onclick=()=>{
+  const rows=ListCore.simulateListExperiment({n:+n.value,treatmentBias:+tb.value,directLieProb:0.35});
+  const truth=ListCore.truthMean(rows), dim=ListCore.diffInMeans(rows).est, b1=ListCore.olsTreatmentCoeff(rows);
+  const errDim=Math.abs(dim-truth), errReg=Math.abs(b1-truth); good=errReg<errDim;
+  bars.innerHTML=row('真实比例',truth)+row('DIM',dim)+row('控制X后的β1',b1);
+  out.innerHTML=`<div>误差：|DIM-Truth|=${errDim.toFixed(3)}；|β1-Truth|=${errReg.toFixed(3)}</div><div class='note'>这一步对应文献中“从均值差扩展到多元关系”的核心动机。正式研究可进一步用NLS/ML/EM提高效率与识别能力。</div><div class='${good?'ok':'warnText'}'>${good?'本轮多元控制更接近真实值':'可提高分组偏置或减小样本量再观察差异'}</div>`;
+  document.getElementById('pass').disabled=false; ListCore.updateProgress({xp:12,stars:1});
+};
+document.getElementById('pass').onclick=()=>{if(!good){out.innerHTML=`<div class='warnText'>请先观察到一次“多元控制改进”再提交。</div>`+out.innerHTML;return;} ListCore.updateProgress({xp:40,stars:4,badge:true,unlock:5}); out.innerHTML=`<div class='ok'>✅ 通关！已解锁第5关挑战赛。</div>`+out.innerHTML;};
+</script></body></html>
